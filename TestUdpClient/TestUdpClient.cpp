@@ -1,3 +1,14 @@
+/*
+ * UdpClient_test.cpp
+ *
+ * @build   make evpp
+ * @server  bin/UdpServer_test 1234
+ * @client  bin/UdpClient_test 1234
+ *
+ */
+
+#include <iostream>
+
 #include "hv/UdpClient.h"
 #include "hv/htime.h"
 
@@ -5,22 +16,23 @@ using namespace hv;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("Usage: %s port\n", argv[0]);
+        printf("Usage: %s remote_port [remote_host]\n", argv[0]);
         return -10;
     }
-    int port = atoi(argv[1]);
+    int remote_port = atoi(argv[1]);
+    const char* remote_host = "127.0.0.1";
+    if (argc > 2) {
+        remote_host = argv[2];
+    }
 
     UdpClient cli;
-    int sockfd = cli.createsocket(port);
+    int sockfd = cli.createsocket(remote_port, remote_host);
     if (sockfd < 0) {
         return -20;
     }
-    printf("client sendto port %d, sockfd=%d ...\n", port, sockfd);
+    printf("client sendto port %d, sockfd=%d ...\n", remote_port, sockfd);
     cli.onMessage = [](const SocketChannelPtr& channel, Buffer* buf) {
         printf("< %.*s\n", (int)buf->size(), (char*)buf->data());
-    };
-    cli.onWriteComplete = [](const SocketChannelPtr& channel, Buffer* buf) {
-        printf("> %.*s\n", (int)buf->size(), (char*)buf->data());
     };
     cli.start();
 
@@ -32,7 +44,22 @@ int main(int argc, char* argv[]) {
         cli.sendto(str);
         });
 
-    // press Enter to stop
-    while (getchar() != '\n');
+    std::string str;
+    while (std::getline(std::cin, str)) {
+        if (str == "close") {
+            cli.closesocket();
+        }
+        else if (str == "start") {
+            cli.start();
+        }
+        else if (str == "stop") {
+            cli.stop();
+            break;
+        }
+        else {
+            cli.sendto(str);
+        }
+    }
+
     return 0;
 }

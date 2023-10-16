@@ -1,6 +1,15 @@
 #include "hv/UdpServer.h"
-
+#include <iostream>
 using namespace hv;
+
+/*
+ * UdpServer_test.cpp
+ *
+ * @build   make evpp
+ * @server  bin/UdpServer_test 1234
+ * @client  bin/UdpClient_test 1234
+ *
+ */
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -20,12 +29,24 @@ int main(int argc, char* argv[]) {
         printf("< %.*s\n", (int)buf->size(), (char*)buf->data());
         channel->write(buf);
     };
-    srv.onWriteComplete = [](const SocketChannelPtr& channel, Buffer* buf) {
-        printf("> %.*s\n", (int)buf->size(), (char*)buf->data());
-    };
     srv.start();
 
-    // press Enter to stop
-    while (getchar() != '\n');
+    std::string str;
+    while (std::getline(std::cin, str)) {
+        if (str == "close") {
+            srv.closesocket();
+        }
+        else if (str == "start") {
+            srv.start();
+        }
+        else if (str == "stop") {
+            srv.stop();
+            break;
+        }
+        else {
+            srv.sendto(str);
+        }
+    }
+
     return 0;
 }
